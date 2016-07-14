@@ -1,0 +1,312 @@
+
+R version 3.3.0 (2016-05-03) -- "Supposedly Educational"
+Copyright (C) 2016 The R Foundation for Statistical Computing
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> utils:::menuInstallPkgs()
+--- Please select a CRAN mirror for use in this session ---
+trying URL 'https://cran.revolutionanalytics.com/bin/windows/contrib/3.3/randomForest_4.6-12.zip'
+Content type 'application/zip' length 177194 bytes (173 KB)
+downloaded 173 KB
+
+package ‘randomForest’ successfully unpacked and MD5 sums checked
+
+The downloaded binary packages are in
+        C:\Users\Om Computers\AppData\Local\Temp\RtmpElFe2Q\downloaded_packages
+> utils:::menuInstallPkgs()
+trying URL 'https://cran.revolutionanalytics.com/bin/windows/contrib/3.3/corrplot_0.77.zip'
+Content type 'application/zip' length 3019065 bytes (2.9 MB)
+downloaded 2.9 MB
+
+package ‘corrplot’ successfully unpacked and MD5 sums checked
+
+The downloaded binary packages are in
+        C:\Users\Om Computers\AppData\Local\Temp\RtmpElFe2Q\downloaded_packages
+> UrlTrain <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+> UrlTest  <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+> training <- read.csv(url(UrlTrain))
+> testing  <- read.csv(url(UrlTest))
+> inTrain  <- createDataPartition(training$classe, p=0.7, list=FALSE)
+Error: could not find function "createDataPartition"
+> library(knitr)
+> library(caret)
+Loading required package: lattice
+Loading required package: ggplot2
+> library(rpart)
+> library(rattle)
+Rattle: A free graphical interface for data mining with R.
+Version 4.1.0 Copyright (c) 2006-2015 Togaware Pty Ltd.
+Type 'rattle()' to shake, rattle, and roll your data.
+Warning message:
+package ‘rattle’ was built under R version 3.3.1 
+> library(randomForest)
+randomForest 4.6-12
+Type rfNews() to see new features/changes/bug fixes.
+
+Attaching package: ‘randomForest’
+
+The following object is masked from ‘package:ggplot2’:
+
+    margin
+
+Warning message:
+package ‘randomForest’ was built under R version 3.3.1 
+> library(corrplot)
+Warning message:
+package ‘corrplot’ was built under R version 3.3.1 
+> set.seed(12345)
+> inTrain  <- createDataPartition(training$classe, p=0.7, list=FALSE)
+> TrainSet <- training[inTrain, ]
+> TestSet  <- training[-inTrain, ]
+> dim(TrainSet)
+[1] 13737   160
+> dim(TestSet)
+[1] 5885  160
+> set.seed(24351)
+> inTrain  <- createDataPartition(training$classe, p=0.7, list=FALSE)
+> TrainSet <- training[inTrain, ]
+> TestSet  <- training[-inTrain, ]
+> dim(TrainSet)
+[1] 13737   160
+> dim(TestSet)
+[1] 5885  160
+> NZV <- nearZeroVar(TrainSet)
+> TrainSet <- TrainSet[, -NZV]
+> TestSet  <- TestSet[, -NZV]
+> dim(TrainSet)
+[1] 13737   108
+> dim(TestSet)
+[1] 5885  108
+> AllNA    <- sapply(TrainSet, function(x) mean(is.na(x))) > 0.95
+> TrainSet <- TrainSet[, AllNA==FALSE]
+> TestSet  <- TestSet[, AllNA==FALSE]
+> dim(TrainSet)
+[1] 13737    59
+> dim(TestSet)
+[1] 5885   59
+> TrainSet <- TrainSet[, -(1:5)]
+> TestSet  <- TestSet[, -(1:5)]
+> dim(TrainSet)
+[1] 13737    54
+> dim(TestSet)
+[1] 5885   54
+> corMatrix <- cor(TrainSet[, -54])
+> corrplot(corMatrix, order = "FPC", method = "color", type = "lower", 
++          tl.cex = 0.8, tl.col = rgb(0, 0, 0))
+> set.seed(98737)
+> set.seed(24351)
+> controlRF <- trainControl(method="cv", number=3, verboseIter=FALSE)
+> modFitRandForest <- train(classe ~ ., data=TrainSet, method="rf",
++                           trControl=controlRF)
+> modFitRandForest$finalModel
+
+Call:
+ randomForest(x = x, y = y, mtry = param$mtry) 
+               Type of random forest: classification
+                     Number of trees: 500
+No. of variables tried at each split: 27
+
+        OOB estimate of  error rate: 0.23%
+Confusion matrix:
+     A    B    C    D    E  class.error
+A 3904    1    0    0    1 0.0005120328
+B    6 2648    3    1    0 0.0037622272
+C    0    3 2392    1    0 0.0016694491
+D    0    0    8 2243    1 0.0039964476
+E    0    1    0    5 2519 0.0023762376
+> predictRandForest <- predict(modFitRandForest, newdata=TestSet)
+> confMatRandForest <- confusionMatrix(predictRandForest, TestSet$classe)
+> confMatRandForest
+Confusion Matrix and Statistics
+
+          Reference
+Prediction    A    B    C    D    E
+         A 1674    1    0    0    0
+         B    0 1138    4    0    0
+         C    0    0 1022    5    0
+         D    0    0    0  959    1
+         E    0    0    0    0 1081
+
+Overall Statistics
+                                          
+               Accuracy : 0.9981          
+                 95% CI : (0.9967, 0.9991)
+    No Information Rate : 0.2845          
+    P-Value [Acc > NIR] : < 2.2e-16       
+                                          
+                  Kappa : 0.9976          
+ Mcnemar's Test P-Value : NA              
+
+Statistics by Class:
+
+                     Class: A Class: B Class: C Class: D Class: E
+Sensitivity            1.0000   0.9991   0.9961   0.9948   0.9991
+Specificity            0.9998   0.9992   0.9990   0.9998   1.0000
+Pos Pred Value         0.9994   0.9965   0.9951   0.9990   1.0000
+Neg Pred Value         1.0000   0.9998   0.9992   0.9990   0.9998
+Prevalence             0.2845   0.1935   0.1743   0.1638   0.1839
+Detection Rate         0.2845   0.1934   0.1737   0.1630   0.1837
+Detection Prevalence   0.2846   0.1941   0.1745   0.1631   0.1837
+Balanced Accuracy      0.9999   0.9991   0.9975   0.9973   0.9995
+> plot(confMatRandForest$table, col = confMatRandForest$byClass, 
++      main = paste("Random Forest - Accuracy =",
++                   round(confMatRandForest$overall['Accuracy'], 4)))
+> set.seed(24351)
+> modFitDecTree <- rpart(classe ~ ., data=TrainSet, method="class")
+> fancyRpartPlot(modFitDecTree)
+Warning message:
+labs do not fit even at cex 0.15, there may be some overplotting 
+> predictDecTree <- predict(modFitDecTree, newdata=TestSet, type="class")
+> confMatDecTree <- confusionMatrix(predictDecTree, TestSet$classe)
+> confMatDecTree
+Confusion Matrix and Statistics
+
+          Reference
+Prediction    A    B    C    D    E
+         A 1535  155   44   46   11
+         B   36  770   68   27   25
+         C   84  147  838   93   69
+         D   14   51   76  725   87
+         E    5   16    0   73  890
+
+Overall Statistics
+                                          
+               Accuracy : 0.8085          
+                 95% CI : (0.7982, 0.8185)
+    No Information Rate : 0.2845          
+    P-Value [Acc > NIR] : < 2.2e-16       
+                                          
+                  Kappa : 0.7574          
+ Mcnemar's Test P-Value : < 2.2e-16       
+
+Statistics by Class:
+
+                     Class: A Class: B Class: C Class: D Class: E
+Sensitivity            0.9170   0.6760   0.8168   0.7521   0.8226
+Specificity            0.9392   0.9671   0.9191   0.9537   0.9804
+Pos Pred Value         0.8571   0.8315   0.6807   0.7608   0.9045
+Neg Pred Value         0.9660   0.9256   0.9596   0.9515   0.9608
+Prevalence             0.2845   0.1935   0.1743   0.1638   0.1839
+Detection Rate         0.2608   0.1308   0.1424   0.1232   0.1512
+Detection Prevalence   0.3043   0.1573   0.2092   0.1619   0.1672
+Balanced Accuracy      0.9281   0.8216   0.8679   0.8529   0.9015
+> plot(confMatDecTree$table, col = confMatDecTree$byClass, 
++      main = paste("Decision Tree - Accuracy =",
++                   round(confMatDecTree$overall['Accuracy'], 4)))
+> set.seed(24351)
+> controlGBM <- trainControl(method = "repeatedcv", number = 5, repeats = 1)
+> modFitGBM  <- train(classe ~ ., data=TrainSet, method = "gbm",
++                     trControl = controlGBM, verbose = FALSE)
+Loading required package: gbm
+Loading required package: survival
+
+Attaching package: ‘survival’
+
+The following object is masked from ‘package:caret’:
+
+    cluster
+
+Loading required package: splines
+Loading required package: parallel
+Loaded gbm 2.1.1
+Loading required package: plyr
+> predictGBM <- predict(modFitGBM, newdata=TestSet)
+> confMatGBM <- confusionMatrix(predictGBM, TestSet$classe)
+> confMatGBM
+Confusion Matrix and Statistics
+
+          Reference
+Prediction    A    B    C    D    E
+         A 1670    8    0    1    0
+         B    4 1118    7    0    5
+         C    0   13 1014   12    3
+         D    0    0    4  948    7
+         E    0    0    1    3 1067
+
+Overall Statistics
+                                         
+               Accuracy : 0.9884         
+                 95% CI : (0.9854, 0.991)
+    No Information Rate : 0.2845         
+    P-Value [Acc > NIR] : < 2.2e-16      
+                                         
+                  Kappa : 0.9854         
+ Mcnemar's Test P-Value : NA             
+
+Statistics by Class:
+
+                     Class: A Class: B Class: C Class: D Class: E
+Sensitivity            0.9976   0.9816   0.9883   0.9834   0.9861
+Specificity            0.9979   0.9966   0.9942   0.9978   0.9992
+Pos Pred Value         0.9946   0.9859   0.9731   0.9885   0.9963
+Neg Pred Value         0.9990   0.9956   0.9975   0.9968   0.9969
+Prevalence             0.2845   0.1935   0.1743   0.1638   0.1839
+Detection Rate         0.2838   0.1900   0.1723   0.1611   0.1813
+Detection Prevalence   0.2853   0.1927   0.1771   0.1630   0.1820
+Balanced Accuracy      0.9977   0.9891   0.9913   0.9906   0.9927
+> plot(confMatGBM$table, col = confMatGBM$byClass, 
++      main = paste("GBM - Accuracy =", round(confMatGBM$overall['Accuracy'], 4)))
+> predictTEST <- predict(modFitRandForest, newdata=testing)
+> predictTEST
+ [1] B A B A A E D B A A B C B A E E A B B B
+Levels: A B C D E
+> save.image("F:\\machine learning\\Research Dr.Avnet\\r analysis\\CourseraAssignment.RData")
+> pml_write_files = function(x){
++     n = length(x)
++     for(i in 1:n){
++         filename = paste0("problem_id_",i,".txt")
++         write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
++     }
++ }
+> pml_write_files(predTesting)
+Error in pml_write_files(predTesting) : object 'predTesting' not found
+> pml_write_files(predictTEST)
+> utils:::menuInstallPkgs()
+also installing the dependencies ‘formatR’, ‘highr’
+
+Warning: package ‘knitr’ is in use and will not be installed
+trying URL 'https://cran.revolutionanalytics.com/bin/windows/contrib/3.3/formatR_1.4.zip'
+Content type 'application/zip' length 51856 bytes (50 KB)
+downloaded 50 KB
+
+trying URL 'https://cran.revolutionanalytics.com/bin/windows/contrib/3.3/highr_0.6.zip'
+Content type 'application/zip' length 35831 bytes (34 KB)
+downloaded 34 KB
+
+package ‘formatR’ successfully unpacked and MD5 sums checked
+package ‘highr’ successfully unpacked and MD5 sums checked
+
+The downloaded binary packages are in
+        C:\Users\Om Computers\AppData\Local\Temp\RtmpElFe2Q\downloaded_packages
+> utils:::menuInstallPkgs()
+also installing the dependency ‘mime’
+
+trying URL 'https://cran.revolutionanalytics.com/bin/windows/contrib/3.3/mime_0.5.zip'
+Content type 'application/zip' length 37477 bytes (36 KB)
+downloaded 36 KB
+
+trying URL 'https://cran.revolutionanalytics.com/bin/windows/contrib/3.3/markdown_0.7.7.zip'
+Content type 'application/zip' length 164962 bytes (161 KB)
+downloaded 161 KB
+
+package ‘mime’ successfully unpacked and MD5 sums checked
+package ‘markdown’ successfully unpacked and MD5 sums checked
+
+The downloaded binary packages are in
+        C:\Users\Om Computers\AppData\Local\Temp\RtmpElFe2Q\downloaded_packages
+> save.image("F:\\machine learning\\Research Dr.Avnet\\r analysis\\CourseraAssignment.RData")
+> 
